@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"path": "D:/Secure Web Applications"
+		},
+		{
+			"path": "../swap"
+		},
+		{
+			"path": ".."
+		}
+	],
+	"settings": {
+		"liveServer.settings.multiRootWorkspaceName": "swap"
+	}
+}
