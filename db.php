@@ -2,7 +2,7 @@
 $servername = "localhost";
 $username = "root";
 $password = "";
-$database = "student_management";
+$database = "swap project";
 
 // Create a connection using mysqli
 $conn = new mysqli($servername, $username, $password, $database);
