@@ -1,4 +1,5 @@
 <?php
+test
 include 'db.php'; // Ensure this contains the $conn connection
 
 $edit_course = null; // Default value for editing
