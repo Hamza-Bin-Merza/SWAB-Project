@@ -39,7 +39,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($stmt->execute()) {
-        header("Location: maincourse.php");
+        if (isset($_POST['update'])) {
+            header("Location: maincourse.php?success=updated");
+        } else {
+            header("Location: maincourse.php?success=created");
+        }
         exit();
     } else {
         echo "<p class='message error'>Error: " . $stmt->error . "</p>";
@@ -47,6 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $stmt->close();
 }
+
 ?>
 
 <!DOCTYPE html>
