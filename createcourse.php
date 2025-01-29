@@ -20,6 +20,9 @@ if (isset($_GET['edit'])) {
 }
 
 // Handle Update or Create
+$error_message = '';
+$course_code_error = '';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $course_name = $_POST['course_name'];
     $course_code = $_POST['course_code'];
@@ -27,31 +30,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $end_date = $_POST['end_date'];
     $course_description = $_POST['course_description'];
 
-    if (isset($_POST['update'])) {
-        // Update existing course
-        $course_id = intval($_POST['course_id']);
-        $stmt = $conn->prepare("UPDATE courses SET course_name = ?, course_code = ?, start_date = ?, end_date = ?, course_description = ? WHERE course_id = ?");
-        $stmt->bind_param("sssssi", $course_name, $course_code, $start_date, $end_date, $course_description, $course_id);
+    // Validation
+    if (empty($course_name)) {
+        $error_message = 'Course Name is required.';
+    } elseif (empty($course_code)) {
+        $course_code_error = 'Course Code is required.';
+    } elseif (empty($start_date)) {
+        $error_message = 'Start Date is required.';
+    } elseif (empty($end_date)) {
+        $error_message = 'End Date is required.';
+    } elseif ($start_date > $end_date) {
+        $error_message = 'Start date must be before the end date.';
+    } elseif (empty($course_description)) {
+        $error_message = 'Course Description is required.';
     } else {
-        // Insert new course
-        $stmt = $conn->prepare("INSERT INTO courses (course_name, course_code, start_date, end_date, course_description, date_created) VALUES (?, ?, ?, ?, ?, NOW())");
-        $stmt->bind_param("sssss", $course_name, $course_code, $start_date, $end_date, $course_description);
-    }
-
-    if ($stmt->execute()) {
         if (isset($_POST['update'])) {
-            header("Location: maincourse.php?success=updated");
+            // Update existing course
+            $course_id = intval($_POST['course_id']);
+
+            // Prevent Duplicate Course Code
+            $stmt = $conn->prepare("SELECT COUNT(*) FROM courses WHERE course_code = ? AND course_id != ?");
+            $stmt->bind_param("si", $course_code, $course_id);
         } else {
-            header("Location: maincourse.php?success=created");
+            // Insert new course
+            $stmt = $conn->prepare("SELECT COUNT(*) FROM courses WHERE course_code = ?");
+            $stmt->bind_param("s", $course_code);
         }
-        exit();
-    } else {
-        echo "<p class='message error'>Error: " . $stmt->error . "</p>";
+
+        $stmt->execute();
+        $stmt->bind_result($count);
+        $stmt->fetch();
+        $stmt->close();
+
+        if ($count > 0) {
+            $course_code_error = 'Course Code already exists. Please use a unique code.';
+        } else {
+            if (isset($_POST['update'])) {
+                $stmt = $conn->prepare("UPDATE courses SET course_name = ?, course_code = ?, start_date = ?, end_date = ?, course_description = ? WHERE course_id = ?");
+                $stmt->bind_param("sssssi", $course_name, $course_code, $start_date, $end_date, $course_description, $course_id);
+            } else {
+                $stmt = $conn->prepare("INSERT INTO courses (course_name, course_code, start_date, end_date, course_description) VALUES (?, ?, ?, ?, ?)");
+                $stmt->bind_param("sssss", $course_name, $course_code, $start_date, $end_date, $course_description);
+            }
+
+            if ($stmt->execute()) {
+                header("Location: maincourse.php?success=" . (isset($_POST['update']) ? 'updated' : 'created'));
+                exit();
+            } else {
+                $error_message = 'Error: ' . htmlspecialchars($stmt->error);
+            }
+        }
     }
-
-    $stmt->close();
 }
-
 ?>
 
 <!DOCTYPE html>
@@ -76,9 +106,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border-radius: 10px;
             box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.15);
         }
-        h2 {
-            color: #1e3c72;
-            margin-bottom: 20px;
+        .error-message {
+            color: #d9534f;
+            font-weight: bold;
+            text-align: center;
+            padding: 10px;
+            margin-bottom: 15px;
+            background-color: #f2dede;
+            border: 1px solid #ebccd1;
+            border-radius: 5px;
         }
         label {
             display: block;
@@ -131,6 +167,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <div class="container">
     <h2><?php echo isset($edit_course) ? 'Edit Course' : 'Create New Course'; ?></h2>
+
+    <?php if (!empty($error_message)): ?>
+        <div class="error-message">
+            <?php echo htmlspecialchars($error_message); ?>
+        </div>
+    <?php endif; ?>
+
     <form method="POST">
         <?php if (isset($edit_course)): ?>
             <input type="hidden" name="course_id" value="<?php echo $edit_course['course_id']; ?>">
@@ -141,6 +184,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <label for="course_code">Course Code:</label>
         <input type="text" id="course_code" name="course_code" value="<?php echo isset($edit_course['course_code']) ? htmlspecialchars($edit_course['course_code']) : ''; ?>" required>
+        <?php if (!empty($course_code_error)): ?>
+            <span style="color: red; font-size: 0.9em;"><?php echo htmlspecialchars($course_code_error); ?></span>
+        <?php endif; ?>
 
         <label for="start_date">Start Date:</label>
         <input type="date" id="start_date" name="start_date" value="<?php echo isset($edit_course['start_date']) ? $edit_course['start_date'] : ''; ?>" required>
