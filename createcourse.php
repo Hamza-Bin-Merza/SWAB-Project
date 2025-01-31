@@ -1,15 +1,19 @@
 <?php
-include 'db.php';
+// Include database connection
+include 'db_connection.php';
 
-// Check if editing
+// Check if we are editing an existing course
 $edit_course = null;
 if (isset($_GET['edit'])) {
     $course_id = intval($_GET['edit']);
-    $stmt = $conn->prepare("SELECT * FROM courses WHERE course_id = ?");
+
+    // Fetch the course details from the database
+    $stmt = $con->prepare("SELECT * FROM courses WHERE course_id = ?");
     $stmt->bind_param("i", $course_id);
     $stmt->execute();
     $result = $stmt->get_result();
 
+    // Check if the course exists
     if ($result->num_rows > 0) {
         $edit_course = $result->fetch_assoc();
     } else {
@@ -19,18 +23,20 @@ if (isset($_GET['edit'])) {
     $stmt->close();
 }
 
-// Handle Update or Create
+// Initialize error messages
 $error_message = '';
 $course_code_error = '';
 
+// Handle form submission for creating or updating a course
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Retrieve form values
     $course_name = $_POST['course_name'];
     $course_code = $_POST['course_code'];
     $start_date = $_POST['start_date'];
     $end_date = $_POST['end_date'];
     $course_description = $_POST['course_description'];
 
-    // Validation
+    // Validate input fields
     if (empty($course_name)) {
         $error_message = 'Course Name is required.';
     } elseif (empty($course_code)) {
@@ -44,16 +50,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (empty($course_description)) {
         $error_message = 'Course Description is required.';
     } else {
+        // Check if we are updating an existing course or creating a new one
         if (isset($_POST['update'])) {
-            // Update existing course
             $course_id = intval($_POST['course_id']);
 
-            // Prevent Duplicate Course Code
-            $stmt = $conn->prepare("SELECT COUNT(*) FROM courses WHERE course_code = ? AND course_id != ?");
+            // Ensure the course code is unique (except for the current course)
+            $stmt = $con->prepare("SELECT COUNT(*) FROM courses WHERE course_code = ? AND course_id != ?");
             $stmt->bind_param("si", $course_code, $course_id);
         } else {
-            // Insert new course
-            $stmt = $conn->prepare("SELECT COUNT(*) FROM courses WHERE course_code = ?");
+            // Ensure the course code is unique for a new course
+            $stmt = $con->prepare("SELECT COUNT(*) FROM courses WHERE course_code = ?");
             $stmt->bind_param("s", $course_code);
         }
 
@@ -65,15 +71,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($count > 0) {
             $course_code_error = 'Course Code already exists. Please use a unique code.';
         } else {
+            // Perform insert or update operation
             if (isset($_POST['update'])) {
-                $stmt = $conn->prepare("UPDATE courses SET course_name = ?, course_code = ?, start_date = ?, end_date = ?, course_description = ? WHERE course_id = ?");
+                // Update existing course details
+                $stmt = $con->prepare("UPDATE courses SET course_name = ?, course_code = ?, start_date = ?, end_date = ?, course_description = ? WHERE course_id = ?");
                 $stmt->bind_param("sssssi", $course_name, $course_code, $start_date, $end_date, $course_description, $course_id);
             } else {
-                $stmt = $conn->prepare("INSERT INTO courses (course_name, course_code, start_date, end_date, course_description) VALUES (?, ?, ?, ?, ?)");
+                // Insert a new course into the database
+                $stmt = $con->prepare("INSERT INTO courses (course_name, course_code, start_date, end_date, course_description) VALUES (?, ?, ?, ?, ?)");
                 $stmt->bind_param("sssss", $course_name, $course_code, $start_date, $end_date, $course_description);
             }
 
+            // Execute the query and handle success or failure
             if ($stmt->execute()) {
+                // Redirect to maincourse.php with a success message
                 header("Location: maincourse.php?success=" . (isset($_POST['update']) ? 'updated' : 'created'));
                 exit();
             } else {
@@ -168,12 +179,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div class="container">
     <h2><?php echo isset($edit_course) ? 'Edit Course' : 'Create New Course'; ?></h2>
 
+    <!-- Display error message if validation fails -->
     <?php if (!empty($error_message)): ?>
         <div class="error-message">
             <?php echo htmlspecialchars($error_message); ?>
         </div>
     <?php endif; ?>
 
+    <!-- Course creation/editing form -->
     <form method="POST">
         <?php if (isset($edit_course)): ?>
             <input type="hidden" name="course_id" value="<?php echo $edit_course['course_id']; ?>">
