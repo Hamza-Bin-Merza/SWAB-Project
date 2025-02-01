@@ -58,7 +58,9 @@ $result_students = $con->query($sql_students);
 $sql_courses = "SELECT course_id, course_name FROM courses";
 $result_courses = $con->query($sql_courses);
 
-$sql_assignments = "SELECT course_assignments.assignment_id, students.student_id, students.name AS student_name, courses.course_id, courses.course_name, course_assignments.status FROM course_assignments 
+$sql_assignments = "SELECT course_assignments.assignment_id, students.student_id, students.name AS student_name, 
+                            courses.course_id, courses.course_name, course_assignments.status 
+                    FROM course_assignments 
                     JOIN students ON course_assignments.student_id = students.student_id 
                     JOIN courses ON course_assignments.course_id = courses.course_id";
 $result_assignments = $con->query($sql_assignments);
@@ -73,6 +75,7 @@ $con->close();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Assign Student to Course</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <a href="dashboard.php" class="home-icon">🏠</a>
     <style>
         body {
             font-family: 'Roboto', sans-serif;
@@ -120,16 +123,33 @@ $con->close();
             background-color: #1e3c72;
             color: white;
         }
+        .home-icon {
+                    position: absolute;
+                    top: 15px;
+                    left: 20px;
+                    font-size: 24px;
+                    text-decoration: none;
+                    color: white;
+                    background-color: transparent;
+                    padding: 10px;
+                    border-radius: 5px;
+                }
+
+                .home-icon:hover {
+                    color: #ddd;
+                }
+
     </style>
 </head>
 <body>
+
     <div class="container">
         <h2>Assign Student to Course</h2>
         <form method="post">
             <label for="student_id">Select Student:</label>
             <select name="student_id" required>
                 <?php
-                $result_students->data_seek(0); // Reset result set
+                $result_students->data_seek(0);
                 while ($row = $result_students->fetch_assoc()) { ?>
                     <option value="<?php echo $row['student_id']; ?>"><?php echo $row['name']; ?></option>
                 <?php } ?>
@@ -138,7 +158,7 @@ $con->close();
             <label for="course_id">Select Course:</label>
             <select name="course_id" required>
                 <?php
-                $result_courses->data_seek(0); // Reset result set
+                $result_courses->data_seek(0);
                 while ($row = $result_courses->fetch_assoc()) { ?>
                     <option value="<?php echo $row['course_id']; ?>"><?php echo $row['course_name']; ?></option>
                 <?php } ?>
@@ -167,30 +187,19 @@ $con->close();
             <tbody>
                 <?php while ($row = $result_assignments->fetch_assoc()) { ?>
                     <tr>
+                        <td><?php echo $row['student_name']; ?></td>
+                        <td><?php echo $row['course_name']; ?></td>
+                        <td><?php echo ucfirst($row['status']); ?></td>
                         <td>
                             <form method='post' style='display:inline;'>
                                 <input type='hidden' name='assignment_id' value='<?php echo $row['assignment_id']; ?>'>
-                                <select name='student_id' required>
-                                    <?php $result_students->data_seek(0); while ($student = $result_students->fetch_assoc()) { ?>
-                                        <option value='<?php echo $student['student_id']; ?>' <?php echo ($row['student_id'] == $student['student_id']) ? 'selected' : ''; ?>><?php echo $student['name']; ?></option>
-                                    <?php } ?>
-                                </select>
-                        </td>
-                        <td>
-                                <select name='course_id' required>
-                                    <?php $result_courses->data_seek(0); while ($course = $result_courses->fetch_assoc()) { ?>
-                                        <option value='<?php echo $course['course_id']; ?>' <?php echo ($row['course_id'] == $course['course_id']) ? 'selected' : ''; ?>><?php echo $course['course_name']; ?></option>
-                                    <?php } ?>
-                                </select>
-                        </td>
-                        <td>
+                                <input type='hidden' name='student_id' value='<?php echo $row['student_id']; ?>'>
+                                <input type='hidden' name='course_id' value='<?php echo $row['course_id']; ?>'>
                                 <select name='status' required>
                                     <option value='start' <?php echo ($row['status'] == 'start') ? 'selected' : ''; ?>>Start</option>
                                     <option value='in-progress' <?php echo ($row['status'] == 'in-progress') ? 'selected' : ''; ?>>In-Progress</option>
                                     <option value='ended' <?php echo ($row['status'] == 'ended') ? 'selected' : ''; ?>>Ended</option>
                                 </select>
-                        </td>
-                        <td>
                                 <button type='submit' name='update'>Update</button>
                                 <button type='submit' name='delete' onclick="return confirm('Are you sure you want to delete this assignment?');">Delete</button>
                             </form>
@@ -200,5 +209,6 @@ $con->close();
             </tbody>
         </table>
     </div>
+
 </body>
 </html>

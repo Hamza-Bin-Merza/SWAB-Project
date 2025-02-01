@@ -129,9 +129,9 @@ $role = $_SESSION['role']; // Role of the logged-in user (Admin, Faculty, Studen
 
 <nav>
     <a href="dashboard.php">Home</a>
-    <?php if ($role == 'Admin'| $role == 'Faculty'): ?>
+    <?php if ($role == 'Admin' || $role == 'Faculty'): ?>
         <a href="read.php">View Student Records</a>
-        <a href=".php">View Classes</a>
+        <a href="classes.php">View Classes</a>
         <a href="maincourse.php">View Course Information</a>
         <a href="read_grades.php">View Student Grades</a>
     <?php endif; ?>
@@ -139,15 +139,16 @@ $role = $_SESSION['role']; // Role of the logged-in user (Admin, Faculty, Studen
 </nav>
 
 <div class="container">
-    <?php if ($role == 'Admin'| $role == 'Faculty'): ?>
+    <?php if ($role == 'Admin' || $role == 'Faculty'): ?>
         <div class="card">
             <h3>Admin Dashboard</h3>
             <p>Welcome to the admin dashboard. Here you can manage student profiles, courses, and more.</p>
             <div class="button-container">
                 <a href="read.php" class="button">View Student Records</a>
-                <a href=".php" class="button">View Classes</a>
+                <a href="classes.php" class="button">View Classes</a>
                 <a href="maincourse.php" class="button">View Course Information</a>
                 <a href="read_grades.php" class="button">View Student Grades</a>
+                <a href="course_assignments.php" class="button">Assigned Courses</a>
             </div>
         </div>
     <?php endif; ?>
@@ -158,6 +159,7 @@ $role = $_SESSION['role']; // Role of the logged-in user (Admin, Faculty, Studen
             <p>Welcome, student! You can view your profile and see your course details.</p>
             <div class="button-container">
                 <a href="view_students.php" class="button">View Your Profile</a>
+                <a href="course_assignments.php" class="button">Assigned Courses</a>
             </div>
         </div>
     <?php endif; ?>

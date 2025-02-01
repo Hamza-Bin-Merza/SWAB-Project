@@ -84,6 +84,7 @@ $result = $stmt->get_result();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Course Management</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <a href="dashboard.php" class="home-icon">🏠</a>
     <style>
         /* General Page Styling */
         body {
@@ -183,6 +184,23 @@ $result = $stmt->get_result();
         .button-group button:hover {
             transform: scale(1.05);
         }
+
+        .home-icon {
+                    position: absolute;
+                    top: 15px;
+                    left: 20px;
+                    font-size: 24px;
+                    text-decoration: none;
+                    color: white;
+                    background-color: transparent;
+                    padding: 10px;
+                    border-radius: 5px;
+                }
+
+                .home-icon:hover {
+                    color: #ddd;
+                }
+
     </style>
 </head>
 <body>
@@ -190,6 +208,8 @@ $result = $stmt->get_result();
         <h1>XYZ Polytechnic - Course Management</h1>
         <img src="logo.png" alt="Logo" class="header-logo">
     </header>
+
+    <a href="dashboard.php" class="home-icon">🏠</a>
 
     <!-- Display success message if available -->
     <?php if ($success_message): ?>
