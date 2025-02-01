@@ -1,4 +1,11 @@
 <?php
+session_start(); // Start session for CSRF token
+
+// Generate a CSRF token if not already set
+if (!isset($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 // Include database connection
 include 'db_connection.php';
 
@@ -33,6 +40,14 @@ $course_code_error = '';
 
 // Handle form submission for creating or updating a course
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Validate CSRF Token
+    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+        die('CSRF validation failed. Please try again.');
+    }
+
+    // Regenerate CSRF token after successful form submission to prevent reuse
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+
     // Retrieve and sanitize form values
 $course_name = filter_var($_POST['course_name'], FILTER_SANITIZE_FULL_SPECIAL_CHARS);
 $course_code = filter_var($_POST['course_code'], FILTER_SANITIZE_FULL_SPECIAL_CHARS);
@@ -198,6 +213,7 @@ $course_description = filter_var($_POST['course_description'], FILTER_SANITIZE_F
 
     <!-- Course creation/editing form -->
     <form method="POST">
+        <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
         <?php if (isset($edit_course)): ?>
             <input type="hidden" name="course_id" value="<?php echo $edit_course['course_id']; ?>">
         <?php endif; ?>
