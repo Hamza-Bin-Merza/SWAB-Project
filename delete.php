@@ -127,11 +127,29 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         .button-container button:hover {
             background-color: #1A0554;
         }
+
+        .home-icon {
+            position: absolute;
+            top: 15px;
+            left: 20px;
+            font-size: 24px;
+            text-decoration: none;
+            color: white;
+            background-color: transparent;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .home-icon:hover {
+            color: #ddd;
+        }
     </style>
 </head>
 <body>
 
-<h2>Delete Student Profile</h2>
+<h2>Delete Student Profile
+<a href="dashboard.php" class="home-icon">🏠</a>
+</h2>
 
 <?php if ($success_message): ?>
     <div class="alert alert-success">

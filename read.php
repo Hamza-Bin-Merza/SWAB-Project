@@ -114,12 +114,30 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
                     border-radius: 5px;
                     text-align: center;
                 }
+
+                .home-icon {
+                    position: absolute;
+                    top: 15px;
+                    left: 20px;
+                    font-size: 24px;
+                    text-decoration: none;
+                    color: white;
+                    background-color: transparent;
+                    padding: 10px;
+                    border-radius: 5px;
+                }
+
+                .home-icon:hover {
+                    color: #ddd;
+                }
             </style>
         </head>
         <body>
 
         <header>
-            <h2>Student Profiles</h2>
+            <h2>Student Profiles
+            <a href="dashboard.php" class="home-icon">🏠</a>
+            </h2>
         </header>
 
         <!-- Display Success or Error Message -->
