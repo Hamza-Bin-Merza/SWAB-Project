@@ -2,61 +2,76 @@
 session_start();
 include 'db_connection.php';
 
+// Generate CSRF Token if not set
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Get form data
-    $username = $_POST['username'];
-    $password = $_POST['password'];
-
-    // First, check in the `users` table for Admin or Faculty
-    $sql = "SELECT * FROM users WHERE username = ?";
-    if ($stmt = $con->prepare($sql)) {
-        $stmt->bind_param('s', $username);
-        $stmt->execute();
-        $result = $stmt->get_result();
-
-        if ($result->num_rows == 1) {
-            $user = $result->fetch_assoc();
-            if (password_verify($password, $user['password_hash'])) {
-                // Store user session
-                $_SESSION['user_id'] = $user['user_id'];
-                $_SESSION['username'] = $user['username'];
-                $_SESSION['role'] = $user['role']; // Either Admin or Faculty
-
-                // Redirect to Admin/Faculty dashboard
-                header("Location: dashboard.php");
-                exit;
-            }
-        }
-        $stmt->close();
+    // Validate CSRF Token
+    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+        die("CSRF token validation failed!");
     }
 
-    // If not found in `users`, check `students` table
-    $sql = "SELECT * FROM students WHERE email = ?";
-    if ($stmt = $con->prepare($sql)) {
-        $stmt->bind_param('s', $username);
-        $stmt->execute();
-        $result = $stmt->get_result();
+    // Sanitize and validate input
+    $username = trim($_POST['username']);
+    $password = trim($_POST['password']);
 
-        if ($result->num_rows == 1) {
-            $student = $result->fetch_assoc();
+    // Input validation: prevent XSS & ensure only valid input
+    if (!preg_match("/^[a-zA-Z0-9@.]+$/", $username)) {
+        $error_message = "Error: Invalid username format!";
+    } elseif (strlen($password) < 6) {
+        $error_message = "Error: Password must be at least 6 characters!";
+    } else {
+        // First, check in the `users` table (Admin/Faculty)
+        $sql = "SELECT * FROM users WHERE username = ?";
+        if ($stmt = $con->prepare($sql)) {
+            $stmt->bind_param('s', $username);
+            $stmt->execute();
+            $result = $stmt->get_result();
 
-            // Verify password (assuming student passwords are stored in a `password_hash` column)
-            if (password_verify($password, $student['password_hash'])) {
-                // Store student session
-                $_SESSION['user_id'] = $student['student_id'];
-                $_SESSION['username'] = $student['name'];
-                $_SESSION['role'] = 'Student'; // Set role to student
+            if ($result->num_rows == 1) {
+                $user = $result->fetch_assoc();
+                if (password_verify($password, $user['password_hash'])) {
+                    // Store user session securely
+                    $_SESSION['user_id'] = htmlspecialchars($user['user_id']);
+                    $_SESSION['username'] = htmlspecialchars($user['username']);
+                    $_SESSION['role'] = htmlspecialchars($user['role']); // Admin or Faculty
 
-                // Redirect to student dashboard
-                header("Location: dashboard.php");
-                exit;
+                    // Redirect to Dashboard
+                    header("Location: dashboard.php");
+                    exit;
+                }
             }
+            $stmt->close();
         }
-        $stmt->close();
-    }
 
-    // If no match found in either table
-    $error_message = "Invalid credentials!";
+        // If not found in `users`, check `students` table
+        $sql = "SELECT * FROM students WHERE email = ?";
+        if ($stmt = $con->prepare($sql)) {
+            $stmt->bind_param('s', $username);
+            $stmt->execute();
+            $result = $stmt->get_result();
+
+            if ($result->num_rows == 1) {
+                $student = $result->fetch_assoc();
+                if (password_verify($password, $student['password_hash'])) {
+                    // Store student session securely
+                    $_SESSION['user_id'] = htmlspecialchars($student['student_id']);
+                    $_SESSION['username'] = htmlspecialchars($student['name']);
+                    $_SESSION['role'] = 'Student';
+
+                    // Redirect to Dashboard
+                    header("Location: dashboard.php");
+                    exit;
+                }
+            }
+            $stmt->close();
+        }
+
+        // Invalid credentials
+        $error_message = "Invalid username or password!";
+    }
 }
 ?>
 
@@ -153,11 +168,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     <!-- Display error message if credentials are wrong -->
     <?php if (isset($error_message)): ?>
-        <div class="alert"><?php echo $error_message; ?></div>
+        <div class="alert"><?php echo htmlspecialchars($error_message); ?></div>
     <?php endif; ?>
 
     <!-- Login form -->
     <form method="POST">
+        <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token']; ?>">
+
         <label for="username">Email/Username:</label>
         <input type="text" name="username" required>
 

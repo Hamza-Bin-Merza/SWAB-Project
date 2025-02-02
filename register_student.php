@@ -1,37 +1,62 @@
 <?php
-include 'db_connection.php';
 session_start();
+include 'db_connection.php';
+
+// Generate CSRF Token if not set
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
 
 $success_message = '';
 $error_message = '';
 
-// Check if the form is submitted
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $name = $_POST['name'];
-    $email = $_POST['email'];
-    $phone = $_POST['phone'];
-    $student_number = $_POST['student_number'];
-    $course = $_POST['course'];
-    $department = $_POST['department'];
-    $password = $_POST['password'];
+    // Validate CSRF Token
+    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+        die("CSRF token validation failed!");
+    }
 
-    // Hash the password before storing
-    $password_hash = password_hash($password, PASSWORD_DEFAULT);
+    // Sanitize and validate input
+    $name = trim($_POST['name']);
+    $email = trim($_POST['email']);
+    $phone = trim($_POST['phone']);
+    $student_number = trim($_POST['student_number']);
+    $course = trim($_POST['course']);
+    $department = trim($_POST['department']);
+    $password = trim($_POST['password']);
 
-    // Insert into students table
-    $sql = "INSERT INTO students (name, email, phone, student_number, course, department, password_hash) 
-            VALUES (?, ?, ?, ?, ?, ?, ?)";
-
-    if ($stmt = $con->prepare($sql)) {
-        $stmt->bind_param('sssssss', $name, $email, $phone, $student_number, $course, $department, $password_hash);
-        if ($stmt->execute()) {
-            $success_message = "Student profile created successfully!";
-        } else {
-            $error_message = "Error: " . $stmt->error;
-        }
-        $stmt->close();
+    // Input validation: prevent XSS & ensure only valid input
+    if (!preg_match("/^[a-zA-Z\s]+$/", $name)) {
+        $error_message = "Error: Name can only contain letters and spaces!";
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $error_message = "Error: Invalid email format!";
+    } elseif (!preg_match("/^\d{8}$/", $phone)) {
+        $error_message = "Error: Phone number must be exactly 8 digits!";
+    } elseif (!preg_match("/^[a-zA-Z0-9]+$/", $student_number)) {
+        $error_message = "Error: Student Number can only contain letters and numbers!";
+    } elseif (strlen($password) < 6) {
+        $error_message = "Error: Password must be at least 6 characters!";
+    } elseif (!in_array($department, ["Engineering", "HSS", "IIT", "Applied Science", "Business", "Design"])) {
+        $error_message = "Error: Invalid department selection!";
     } else {
-        $error_message = "Error preparing statement: " . $con->error;
+        // Hash the password securely
+        $password_hash = password_hash($password, PASSWORD_DEFAULT);
+
+        // Secure SQL Query with Prepared Statement
+        $sql = "INSERT INTO students (name, email, phone, student_number, course, department, password_hash) 
+                VALUES (?, ?, ?, ?, ?, ?, ?)";
+
+        if ($stmt = $con->prepare($sql)) {
+            $stmt->bind_param('sssssss', $name, $email, $phone, $student_number, $course, $department, $password_hash);
+            if ($stmt->execute()) {
+                $success_message = "Student profile created successfully!";
+            } else {
+                $error_message = "Error: " . $stmt->error;
+            }
+            $stmt->close();
+        } else {
+            $error_message = "Error preparing statement: " . $con->error;
+        }
     }
 }
 ?>
@@ -41,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create Student Profile</title>
+    <title>Student Registration</title>
 
     <style>
         body {
@@ -51,9 +76,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             padding: 0;
             display: flex;
             flex-direction: column;
-            justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
+            overflow-y: auto; /* Enable vertical scrolling */
         }
 
         h2 {
@@ -154,18 +179,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 </head>
 <body>
 
-<h2>Create Student Profile</h2>
+<h2>Student Registration</h2>
 
 <!-- Display Success or Error Message -->
 <?php if ($success_message): ?>
-    <div class="alert alert-success"><?php echo $success_message; ?></div>
+    <div class="alert alert-success"><?php echo htmlspecialchars($success_message); ?></div>
 <?php endif; ?>
 <?php if ($error_message): ?>
-    <div class="alert alert-danger"><?php echo $error_message; ?></div>
+    <div class="alert alert-danger"><?php echo htmlspecialchars($error_message); ?></div>
 <?php endif; ?>
 
 <div class="form-container">
     <form method="POST">
+        <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token']; ?>">
+
         <label for="name">Name:</label>
         <input type="text" name="name" required>
 
@@ -196,11 +223,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         <button type="submit">Create Student</button>
     </form>
-</div>
-
-<!-- "Already have an account?" link to login page -->
-<div class="already-account-box">
-    <p>Already have an account? <a href="login.php">Login here</a></p>
 </div>
 
 </body>

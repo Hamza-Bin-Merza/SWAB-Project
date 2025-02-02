@@ -1,36 +1,56 @@
 <?php
+session_start();
 include 'db_connection.php';
+
+// Generate CSRF Token if not set
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
 
 $success_message = '';
 $error_message = '';
 
-// Check if the form is submitted
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Get form data
-    $username = $_POST['username'];
-    $password = $_POST['password'];
-    $email = $_POST['email'];
-    $role = $_POST['role'];
+    // Validate CSRF Token
+    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+        die("CSRF token validation failed!");
+    }
 
-    // Hash the password
-    $password_hash = password_hash($password, PASSWORD_DEFAULT);
+    // Sanitize and validate input
+    $username = trim($_POST['username']);
+    $password = trim($_POST['password']);
+    $email = trim($_POST['email']);
+    $role = trim($_POST['role']);
 
-    // Prepare SQL query
-    $sql = "INSERT INTO users (username, password_hash, email, role)
-            VALUES (?, ?, ?, ?)";
-
-    if ($stmt = $con->prepare($sql)) {
-        $stmt->bind_param('ssss', $username, $password_hash, $email, $role);
-        if ($stmt->execute()) {
-            // Redirect to the login page after successful registration
-            header("Location: login.php");
-            exit; // Stop further execution
-        } else {
-            $error_message = "Error: " . $stmt->error;
-        }
-        $stmt->close();
+    // Input validation: prevent XSS & ensure only valid input
+    if (!preg_match("/^[a-zA-Z0-9]+$/", $username)) {
+        $error_message = "Error: Username can only contain letters and numbers!";
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $error_message = "Error: Invalid email format!";
+    } elseif (strlen($password) < 6) {
+        $error_message = "Error: Password must be at least 6 characters!";
+    } elseif ($role !== "Admin" && $role !== "Faculty") {
+        $error_message = "Error: Invalid role selection!";
     } else {
-        $error_message = "Error preparing statement: " . $con->error;
+        // Hash the password
+        $password_hash = password_hash($password, PASSWORD_DEFAULT);
+
+        // Secure SQL Query with Prepared Statement
+        $sql = "INSERT INTO users (username, password_hash, email, role) VALUES (?, ?, ?, ?)";
+
+        if ($stmt = $con->prepare($sql)) {
+            $stmt->bind_param('ssss', $username, $password_hash, $email, $role);
+            if ($stmt->execute()) {
+                // Redirect to login page after successful registration
+                header("Location: login.php");
+                exit;
+            } else {
+                $error_message = "Error: " . $stmt->error;
+            }
+            $stmt->close();
+        } else {
+            $error_message = "Error preparing statement: " . $con->error;
+        }
     }
 }
 ?>
@@ -50,9 +70,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             padding: 0;
             display: flex;
             flex-direction: column;
-            justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
+            overflow-y: auto; /* Enable vertical scrolling */
         }
 
         h2 {
@@ -126,45 +146,59 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             color: #C4A8FF;
         }
 
-        .already-account-box {
-            display: inline-block;
+        .bottom-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px; /* Space between boxes */
+            margin-top: 20px;
+        }
+
+        .already-account-box, .register-student-box {
+            flex: 1;
+            max-width: 300px;
             padding: 15px;
             border: 2px solid #664EAE;
             border-radius: 8px;
             background-color: #fff;
             text-align: center;
-            margin-top: 20px;
-            width: 15%;  /* Matches form width */
-            margin-left: auto;
-            margin-right: auto;
         }
 
-        .already-account-box a {
+        .student-button {
+            display: block;
+            margin-top: 10px;
+            padding: 10px 20px;
+            background-color: #664EAE;
+            color: white;
             text-decoration: none;
-            color: #664EAE;
-            font-weight: bold;
-            transition: color 0.3s ease;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: background-color 0.3s ease;
         }
 
-        .already-account-box a:hover {
-            color: #1A0554;
+        .student-button:hover {
+            background-color: #1A0554;
         }
+
+
+
     </style>
 </head>
 <body>
 
-<h2>Register here</h2>
+<h2>Registration</h2>
 
 <!-- Display Success or Error Message -->
 <?php if ($success_message): ?>
-    <div class="alert alert-success"><?php echo $success_message; ?></div>
+    <div class="alert alert-success"><?php echo htmlspecialchars($success_message); ?></div>
 <?php endif; ?>
 <?php if ($error_message): ?>
-    <div class="alert alert-danger"><?php echo $error_message; ?></div>
+    <div class="alert alert-danger"><?php echo htmlspecialchars($error_message); ?></div>
 <?php endif; ?>
 
 <div class="form-container">
     <form method="POST">
+        <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token']; ?>">
+
         <label for="username">Username:</label>
         <input type="text" name="username" required>
 
@@ -184,10 +218,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     </form>
 </div>
 
-<!-- "Already have an account?" link to login page -->
-<div class="already-account-box">
-    <p>Already have an account? <a href="login.php">Login here</a></p>
+<div class="bottom-container">
+    <div class="already-account-box">
+        <p>Already have an account? <a href="login.php">Login here</a></p>
+    </div>
+
+    <div class="register-student-box">
+        <p>Want to register as a student?</p>
+        <a href="register_student.php" class="student-button">Register as Student</a>
+    </div>
 </div>
+
+
 
 </body>
 </html>
