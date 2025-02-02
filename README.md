@@ -1,5 +1,9 @@
 Secure AMC Student Management System
 
+Class: TC10
+Group: 6
+Members: Trixy, Sofia, Hamza, Hisham
+
 ✅ User Roles & Permissions
 Admin:	Full access (CRUD functions & user management)
 Faculty:	Manage student records related to their courses
