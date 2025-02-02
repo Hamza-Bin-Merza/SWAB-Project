@@ -7,7 +7,18 @@ if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-// Flag to indicate whether the grade was successfully inserted
+// Security headers to prevent XSS & Clickjacking
+header("X-XSS-Protection: 1; mode=block");
+header("X-Content-Type-Options: nosniff");
+header("Referrer-Policy: no-referrer");
+header("Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'");
+
+// Function to sanitize user input
+function sanitize_input($input) {
+    return htmlspecialchars(strip_tags(trim($input)), ENT_QUOTES, 'UTF-8');
+}
+
+// Flag to indicate success or error messages
 $successMessage = "";
 $errorMessage = "";
 
@@ -19,13 +30,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit'])) {
     }
 
     // Sanitize user input
-    $student_id = htmlspecialchars(trim($_POST['student_id']));
-    $course = htmlspecialchars(trim($_POST['course']));
-    $module = htmlspecialchars(trim($_POST['module']));
-    $grade = htmlspecialchars(trim($_POST['grade']));
-    $score = htmlspecialchars(trim($_POST['score']));
-    $date_recorded = htmlspecialchars(trim($_POST['date_recorded']));
-    $course_end_date = htmlspecialchars(trim($_POST['course_end_date']));
+    $student_id = sanitize_input($_POST['student_id']);
+    $course = sanitize_input($_POST['course']);
+    $module = sanitize_input($_POST['module']);
+    $grade = sanitize_input($_POST['grade']);
+    $score = sanitize_input($_POST['score']);
+    $date_recorded = sanitize_input($_POST['date_recorded']);
+    $course_end_date = sanitize_input($_POST['course_end_date']);
 
     // Validate Student ID Format (Only Letters & Numbers)
     if (!preg_match("/^[a-zA-Z0-9]+$/", $student_id)) {
@@ -56,7 +67,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit'])) {
         $stmt->close(); // Close the statement
     }
 }
-
 ?>
 
 <!DOCTYPE html>
@@ -65,6 +75,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Grade Submission Form</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'">
+
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -75,15 +87,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit'])) {
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh; /* ✅ Changed from height: 100vh; */
+            min-height: 100vh;
             flex-direction: column;
             text-align: center;
             position: relative;
-            overflow-y: auto; /* ✅ Allows scrolling if content overflows */
+            overflow-y: auto;
         }
 
-
-        /* Logo Styling */
         .logo {
             position: absolute;
             top: 20px;
@@ -151,40 +161,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit'])) {
             background-color: #5a42a3;
         }
 
-        .form-container input[type="submit"]:active {
-            background-color: #4a3791;
+        .success-message, .error-message {
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-weight: bold;
+            text-align: center;
         }
 
-        .form-container input[type="text"]:focus, 
-        .form-container input[type="date"]:focus, 
-        .form-container select:focus {
-            border-color: #1e3c72;
-            outline: none;
-        }
-
-        /* Success message styling */
         .success-message {
             background-color: #4CAF50;
             color: white;
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 15px;
-            font-weight: bold;
-            text-align: center;
         }
 
-        /* Error message styling */
         .error-message {
             background-color: #f44336;
             color: white;
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 15px;
-            font-weight: bold;
-            text-align: center;
         }
 
-        /* Link button styling */
         .link-button {
             background-color: #007bff;
             color: white;
@@ -205,19 +199,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit'])) {
 </head>
 <body>
 
-<!-- Logo -->
 <img src="capy.png" alt="Logo" class="logo" />
 
 <div class="form-container">
     <h2>Submit Grade</h2>
 
-    <!-- Display success or error message -->
-    <?php if ($successMessage != ""): ?>
-        <div class="success-message"><?= $successMessage; ?></div>
+    <?php if ($successMessage): ?>
+        <div class="success-message"><?= htmlspecialchars($successMessage, ENT_QUOTES, 'UTF-8'); ?></div>
     <?php endif; ?>
 
-    <?php if ($errorMessage != ""): ?>
-        <div class="error-message"><?= $errorMessage; ?></div>
+    <?php if ($errorMessage): ?>
+        <div class="error-message"><?= htmlspecialchars($errorMessage, ENT_QUOTES, 'UTF-8'); ?></div>
     <?php endif; ?>
 
     <form method="POST">
@@ -226,41 +218,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit'])) {
         <label for="student_id">Student ID:</label>
         <input type="text" id="student_id" name="student_id" required><br>
 
-        <label for="course">Course:</label>
-        <select id="course" name="course" required>
-            <option value="AAI">Applied Artifical Intelligence</option>
-            <option value="BDA">Big Data & Analytics</option>
-            <option value="CDF">Cybersecurity & Digital Forensics</option>
-            <option value="ITO">Information Technology</option>
-            <option value="IGD">Immersive Media & Game Development</option>
-        </select><br>
-
-        <label for="module">Module:</label>
-        <select id="module" name="module" required>
-            <option value="CYFUN">Cybersecurity Fundamentals</option>
-            <option value="LOMA">Logic & Mathematics</option>
-            <option value="DAVA">Data Analytics & Visualisation</option>
-            <option value="COMT">Computational Thinking</option>
-            <option value="UXID">User Experience & Interface Design</option>
-        </select><br>
-
-        <label for="grade">Grade:</label>
-        <select id="grade" name="grade" required>
-            <option value="A">A (80-100)</option>
-            <option value="B">B (70-79)</option>
-            <option value="C">C (60-69)</option>
-            <option value="D">D (50-59)</option>
-            <option value="F">F (Below 50)</option>
-        </select><br>
-
         <label for="score">Score:</label>
         <input type="text" id="score" name="score" required><br>
-
-        <label for="date_recorded">Date Recorded:</label>
-        <input type="date" id="date_recorded" name="date_recorded" required><br>
-
-        <label for="course_end_date">Course End Date:</label>
-        <input type="date" id="course_end_date" name="course_end_date" required><br>
 
         <input type="submit" name="submit" value="Submit Grade">
     </form>
