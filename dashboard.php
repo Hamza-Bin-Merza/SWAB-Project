@@ -139,10 +139,25 @@ $role = $_SESSION['role']; // Role of the logged-in user (Admin, Faculty, Studen
 </nav>
 
 <div class="container">
-    <?php if ($role == 'Admin' || $role == 'Faculty'): ?>
+    <?php if ($role == 'Admin'): ?>
         <div class="card">
             <h3>Admin Dashboard</h3>
             <p>Welcome to the admin dashboard. Here you can manage student profiles, courses, and more.</p>
+            <div class="button-container">
+                <a href="read.php" class="button">View Student Records</a>
+                <a href="classes.php" class="button">View Classes</a>
+                <a href="maincourse.php" class="button">View Course Information</a>
+                <a href="read_grades.php" class="button">View Student Grades</a>
+                <a href="course_assignments.php" class="button">Assigned Courses</a>
+            </div>
+        </div>
+    <?php endif; ?>
+
+<div class="container">
+    <?php if ($role == 'Faculty'): ?>
+        <div class="card">
+            <h3>Admin Dashboard</h3>
+            <p>Welcome to the faculty dashboard. Here you can manage student profiles, courses, and more.</p>
             <div class="button-container">
                 <a href="read.php" class="button">View Student Records</a>
                 <a href="classes.php" class="button">View Classes</a>
