@@ -1,22 +1,31 @@
 <?php
-include 'db.php';
+// Include database connection
+include 'db_connection.php';
 
-// Display confirmation message
+// Display success message based on action performed
 $success_message = '';
-if (isset($_GET['success']) && $_GET['success'] === 'created') {
-    $success_message = "Course successfully created!";
-} elseif (isset($_GET['success']) && $_GET['success'] === 'updated') {
-    $success_message = "Course successfully updated!";
+if (isset($_GET['success'])) {
+    if ($_GET['success'] === 'created') {
+        $success_message = "Course successfully created!";
+    } elseif ($_GET['success'] === 'updated') {
+        $success_message = "Course successfully updated!";
+    } elseif ($_GET['success'] === 'deleted') {
+        $success_message = "Course successfully deleted!";
+    }
 }
-
 
 // Handle CSV Export
 if (isset($_GET['action']) && $_GET['action'] == 'export') {
+    // Set headers to prompt file download
     header('Content-Type: text/csv; charset=utf-8');
     header('Content-Disposition: attachment; filename=courses.csv');
+
+    // Open output stream and write column headers
     $output = fopen('php://output', 'w');
     fputcsv($output, ['Course Name', 'Course Code', 'Start Date', 'End Date', 'Description']);
-    $stmt = $conn->query("SELECT course_name, course_code, start_date, end_date, course_description FROM courses");
+
+    // Fetch course data from database and write to CSV
+    $stmt = $con->query("SELECT course_name, course_code, start_date, end_date, course_description FROM courses");
     while ($row = $stmt->fetch_assoc()) {
         fputcsv($output, $row);
     }
@@ -24,13 +33,31 @@ if (isset($_GET['action']) && $_GET['action'] == 'export') {
     exit();
 }
 
-// Handle Delete Course
+// Handle Course Deletion
 if (isset($_GET['delete'])) {
     $course_id = intval($_GET['delete']);
-    $stmt = $conn->prepare("DELETE FROM courses WHERE course_id = ?");
+
+    // Check if there are related records in course_assignments
+    $check_stmt = $con->prepare("SELECT COUNT(*) FROM course_assignments WHERE course_id = ?");
+    $check_stmt->bind_param("i", $course_id);
+    $check_stmt->execute();
+    $check_stmt->bind_result($count);
+    $check_stmt->fetch();
+    $check_stmt->close();
+
+    if ($count > 0) {
+        // Delete related records in course_assignments first
+        $stmt = $con->prepare("DELETE FROM course_assignments WHERE course_id = ?");
+        $stmt->bind_param("i", $course_id);
+        $stmt->execute();
+    }
+    
+    // Now delete the course
+    $stmt = $con->prepare("DELETE FROM courses WHERE course_id = ?");
     $stmt->bind_param("i", $course_id);
+    
     if ($stmt->execute()) {
-        header("Location: maincourse.php");
+        header("Location: maincourse.php?success=deleted");
         exit();
     } else {
         echo "<script>alert('Error deleting the course!');</script>";
@@ -40,7 +67,9 @@ if (isset($_GET['delete'])) {
 // Handle Search Query
 $search = isset($_GET['search']) ? "%" . $_GET['search'] . "%" : '';
 $query = $search ? "SELECT * FROM courses WHERE course_name LIKE ? OR course_code LIKE ?" : "SELECT * FROM courses";
-$stmt = $conn->prepare($query);
+$stmt = $con->prepare($query);
+
+// Bind parameters if search is performed
 if ($search) {
     $stmt->bind_param("ss", $search, $search);
 }
@@ -55,7 +84,9 @@ $result = $stmt->get_result();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Course Management</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <a href="dashboard.php" class="home-icon">🏠</a>
     <style>
+        /* General Page Styling */
         body {
             font-family: 'Roboto', sans-serif;
             background-color: #B0C4DE;
@@ -84,6 +115,8 @@ $result = $stmt->get_result();
             padding: 20px;
             border-radius: 10px;
         }
+
+        /* Success Message Styling */
         .success-message {
             margin: 10px auto;
             padding: 10px;
@@ -94,6 +127,8 @@ $result = $stmt->get_result();
             text-align: center;
             width: 90%;
         }
+
+        /* Search and Button Styling */
         .search-export {
             display: flex;
             justify-content: space-between;
@@ -121,6 +156,8 @@ $result = $stmt->get_result();
             border-radius: 5px;
             cursor: pointer;
         }
+
+        /* Table Styling */
         table {
             width: 100%;
             border-collapse: collapse;
@@ -134,7 +171,8 @@ $result = $stmt->get_result();
             background-color: #1e3c72;
             color: white;
         }
-        /* Hover Effects */
+
+        /* Button Hover Effects */
         button {
             transition: transform 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
         }
@@ -146,6 +184,23 @@ $result = $stmt->get_result();
         .button-group button:hover {
             transform: scale(1.05);
         }
+
+        .home-icon {
+                    position: absolute;
+                    top: 15px;
+                    left: 20px;
+                    font-size: 24px;
+                    text-decoration: none;
+                    color: white;
+                    background-color: transparent;
+                    padding: 10px;
+                    border-radius: 5px;
+                }
+
+                .home-icon:hover {
+                    color: #ddd;
+                }
+
     </style>
 </head>
 <body>
@@ -154,6 +209,9 @@ $result = $stmt->get_result();
         <img src="logo.png" alt="Logo" class="header-logo">
     </header>
 
+    <a href="dashboard.php" class="home-icon">🏠</a>
+
+    <!-- Display success message if available -->
     <?php if ($success_message): ?>
         <div class="success-message">
             <?php echo $success_message; ?>
@@ -163,10 +221,13 @@ $result = $stmt->get_result();
     <div class="container">
         <h2>Course List</h2>
         <div class="search-export">
+            <!-- Search Form -->
             <form method="GET" class="search-form">
                 <input type="search" name="search" placeholder="Search by course name or course code" value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>">
                 <button type="submit">Search</button>
             </form>
+
+            <!-- Buttons for creating course and exporting CSV -->
             <div class="button-group">
                 <button onclick="window.location.href='createcourse.php';">Create New Course</button>
                 <form method="GET" style="display: inline;">
@@ -175,6 +236,8 @@ $result = $stmt->get_result();
                 <button onclick="window.location.href='maincourse.php';">Go Back</button>
             </div>
         </div>
+
+        <!-- Course List Table -->
         <table>
             <thead>
                 <tr>
@@ -189,6 +252,7 @@ $result = $stmt->get_result();
             </thead>
             <tbody>
                 <?php
+                // Display courses in a table
                 $counter = 1;
                 while ($row = $result->fetch_assoc()) {
                     echo "<tr>";

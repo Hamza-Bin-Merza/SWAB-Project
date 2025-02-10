@@ -142,11 +142,29 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             background-color: #0C0B13;
             color: #C4A8FF;
         }
+
+        .home-icon {
+            position: absolute;
+            top: 15px;
+            left: 20px;
+            font-size: 24px;
+            text-decoration: none;
+            color: white;
+            background-color: transparent;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .home-icon:hover {
+            color: #ddd;
+        }
     </style>
 </head>
 <body>
 
-<h2>Create New Student Profile</h2>
+<h2>Create New Student Profile
+<a href="dashboard.php" class="home-icon">🏠</a>
+</h2>
 
 <!-- Display Success or Error Message -->
 <?php if ($success_message): ?>
