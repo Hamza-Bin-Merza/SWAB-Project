@@ -1,5 +1,14 @@
 <?php
 include 'db_connection.php';
+session_start();
+
+// Debugging output to confirm the role
+echo "<script>console.log('User Role: " . $_SESSION['role'] . "');</script>";
+
+if (!isset($_SESSION['role'])) {
+    header("Location: login.php");
+    exit;
+}
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (isset($_POST['update'])) {
@@ -220,9 +229,11 @@ $con->close();
                                 </select>
                         </td>
                         <td>
-                                <button type='submit' name='update'>Update</button>
-                                <button type='submit' name='delete' onclick="return confirm('Are you sure you want to delete this assignment?');">Delete</button>
-                            </form>
+                        <button type='submit' name='update'>Update</button>
+
+                        <?php if ($_SESSION['role'] === 'Faculty'): // Only Faculty can Delete ?>
+                            <button type='submit' name='delete' onclick="return confirm('Are you sure you want to delete this assignment?');">Delete</button>
+                        <?php endif; ?>                            </form>
                         </td>
                     </tr>
                 <?php } ?>
