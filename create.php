@@ -11,14 +11,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $course = $_POST['course'];
     $department = $_POST['department'];
     $student_number = $_POST['student_number'];
+    $password = $_POST['password_hash'];
+
+    // Hash the password before storing
+    $password_hash = password_hash($password, PASSWORD_DEFAULT);
+
 
     // Prepare and execute SQL query
-    $sql = "INSERT INTO students (name, email, phone, course, department, student_number)
-            VALUES (?, ?, ?, ?, ?, ?)";
+    $sql = "INSERT INTO students (name, email, phone, course, department, student_number, password_hash)
+            VALUES (?, ?, ?, ?, ?, ?, ?)";
 
     // Use prepared statements to avoid SQL injection
     if ($stmt = $con->prepare($sql)) {
-        $stmt->bind_param('ssssss', $name, $email, $phone, $course, $department, $student_number);
+        $stmt->bind_param('sssssss', $name, $email, $phone, $course, $department, $student_number, $password_hash);
         if ($stmt->execute()) {
             $success_message = "Profile created successfully!";
         } else {
@@ -197,6 +202,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <div class="mb-3">
             <label for="student_number" class="form-label">Student Number:</label>
             <input type="text" id="student_number" name="student_number" required>
+        </div>
+        <div class="mb-3">
+            <label for="password_hash" class="form-label">Password:</label>
+            <input type="text" id="password_hash" name="password_hash" required>
         </div>
         <button type="submit">Create Profile</button>
     </form>

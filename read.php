@@ -1,14 +1,21 @@
 <?php
 include 'db_connection.php';
+session_start();
+
+if (!isset($_SESSION['role'])) {
+    header("Location: login.php");
+    exit;
+}
+
+$role = $_SESSION['role']; // Get the logged-in user's role
 
 if ($_SERVER['REQUEST_METHOD'] == 'GET') {
-    // Admin can view all student records
-    $sql = "SELECT * FROM students";
+    // Fetch student records
+    $sql = "SELECT student_id, name, email, phone, course, department, password_hash FROM students";
     $result = $con->query($sql);
 
     if ($result->num_rows > 0) {
-        // Display HTML with CSS and PHP logic
-        ?>
+?>
         <!DOCTYPE html>
         <html lang="en">
         <head>
@@ -19,13 +26,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
             <style>
                 body {
                     font-family: 'Roboto', sans-serif;
-                    background-color: #B0C4DE; /* Background color */
+                    background-color: #B0C4DE;
                     margin: 0;
                     padding: 0;
                 }
 
                 header {
-                    background-color: #1e3c72; /* Dark blue header */
+                    background-color: #1e3c72;
                     color: white;
                     padding: 20px;
                     text-align: center;
@@ -47,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
                     width: 80%;
                     margin: 30px auto;
                     border-collapse: collapse;
-                    background-color: #fff; /* White background for the table */
+                    background-color: #fff;
                     border-radius: 8px;
                     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
                 }
@@ -59,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
                 }
 
                 th {
-                    background-color: #1e3c72; /* Dark blue for header */
+                    background-color: #1e3c72;
                     color: white;
                 }
 
@@ -77,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
                 }
 
                 .button-container button {
-                    background-color: #1e3c72; /* Dark blue background */
+                    background-color: #1e3c72;
                     color: white;
                     padding: 12px 24px;
                     border: none;
@@ -88,11 +95,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
                 }
 
                 .button-container button:hover {
-                    background-color: #163c63; /* Darker blue on hover */
+                    background-color: #163c63;
                 }
 
                 .btn-link {
-                    background-color: #F44336; /* Red for delete button */
+                    background-color: #F44336;
                     color: white;
                     padding: 5px 10px;
                     text-decoration: none;
@@ -101,7 +108,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
                 }
 
                 .btn-link:hover {
-                    background-color: #d32f2f; /* Darker red on hover */
+                    background-color: #d32f2f;
+                }
+
+                .update-link {
+                    background-color: #008CBA;
+                    color: white;
+                    padding: 5px 10px;
+                    text-decoration: none;
+                    border-radius: 4px;
+                    transition: background-color 0.3s ease;
+                }
+
+                .update-link:hover {
+                    background-color: #0073a8;
                 }
 
                 .alert {
@@ -153,20 +173,27 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
                 <th>Phone</th>
                 <th>Course</th>
                 <th>Department</th>
-                <th>Actions</th> <!-- Add an Actions column -->
+                <th>Password (Hashed)</th>
+                <th>Actions</th> 
             </tr>
 
             <?php while ($row = $result->fetch_assoc()): ?>
             <tr>
-                <td><?= $row['student_id'] ?></td>
-                <td><?= $row['name'] ?></td>
-                <td><?= $row['email'] ?></td>
-                <td><?= $row['phone'] ?></td>
-                <td><?= $row['course'] ?></td>
-                <td><?= $row['department'] ?></td>
+                <td><?= htmlspecialchars($row['student_id']); ?></td>
+                <td><?= htmlspecialchars($row['name']); ?></td>
+                <td><?= htmlspecialchars($row['email']); ?></td>
+                <td><?= htmlspecialchars($row['phone']); ?></td>
+                <td><?= htmlspecialchars($row['course']); ?></td>
+                <td><?= htmlspecialchars($row['department']); ?></td>
+                <td><?= htmlspecialchars($row['password_hash']); ?></td> <!-- Display hashed password -->
                 <td>
-                    <a href="delete.php?student_id=<?= $row['student_id'] ?>" class="btn-link">Delete</a>
-                    <a href="update.php?student_id=<?= $row['student_id'] ?>" class="btn-link">Update</a>
+                    <!-- Update is visible for both Admin and Faculty -->
+                    <a href="update.php?student_id=<?= htmlspecialchars($row['student_id']); ?>" class="update-link">Update</a>
+
+                    <!-- Delete is visible only to Admins -->
+                    <?php if ($role == 'Admin'): ?>
+                        <a href="delete.php?student_id=<?= htmlspecialchars($row['student_id']); ?>" class="btn-link">Delete</a>
+                    <?php endif; ?>
                 </td>
             </tr>
             <?php endwhile; ?>
@@ -179,7 +206,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
 
         </body>
         </html>
-        <?php
+<?php
     } else {
         echo "<div class='alert'>No student records found.</div>";
     }
