@@ -1,6 +1,23 @@
 <?php
-// Include database connection
 include 'db_connection.php';
+session_start();
+
+if (!isset($_SESSION['role'])) {
+    header("Location: login.php");
+    exit;
+}
+
+$role = $_SESSION['role']; // Get the logged-in user's role
+
+// Debugging output to confirm the role
+echo "<script>console.log('User Role: " . $role . "');</script>";
+
+if ($_SERVER['REQUEST_METHOD'] == 'GET') {
+    // Admin & Faculty can view all courses
+    $sql = "SELECT * FROM courses";
+    $result = $con->query($sql);
+}
+
 
 // Display success message based on action performed
 $success_message = '';
@@ -265,15 +282,22 @@ $result = $stmt->get_result();
                     echo "<td>
                             <form method='GET' action='createcourse.php' style='display: inline;'>
                                 <input type='hidden' name='edit' value='{$row['course_id']}'>
-                                <button type='submit'>Edit</button>
-                            </form>
-                            <form method='GET' action='maincourse.php' style='display: inline;'>
-                                <input type='hidden' name='delete' value='{$row['course_id']}'>
-                                <button type='submit' onclick=\"return confirm('Are you sure you want to delete this course?');\">Delete</button>
-                            </form>
-                          </td>";
-                    echo "</tr>";
-                }
+                                <button class='button' type='submit'>Edit</button>
+                            </form>";
+
+                            // Debug Role Output
+                            echo "<script>console.log('Role inside table: " . $role . "');</script>";
+
+                            // Ensure the delete button appears ONLY for Admins
+                            if (trim($role) === 'Admin') { 
+                                echo "<form method='GET' action='maincourse.php' style='display: inline;'>
+                                        <input type='hidden' name='delete' value='{$row['course_id']}'>
+                                        <button class='button' type='submit' onclick=\"return confirm('Are you sure you want to delete this course?');\">Delete</button>
+                                    </form>";
+                            }
+
+                            echo "</td></tr>";
+                                            }
                 ?>
             </tbody>
         </table>
