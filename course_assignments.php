@@ -1,26 +1,38 @@
 <?php
+// Include the database connection file to establish a connection
 include 'db_connection.php';
+
+// Start the session to manage user authentication and roles
 session_start();
 
-// Debugging output to confirm the role
+// Debugging output to check the current user role in the browser console
 echo "<script>console.log('User Role: " . $_SESSION['role'] . "');</script>";
 
+// Redirect to login page if the user role is not set (i.e., not logged in)
 if (!isset($_SESSION['role'])) {
     header("Location: login.php");
     exit;
 }
 
+// Check if the request method is POST (for handling form submissions)
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+
+
+    // Handling course assignment update
     if (isset($_POST['update'])) {
         $assignment_id = $_POST['assignment_id'];
         $student_id = $_POST['student_id'];
         $course_id = $_POST['course_id'];
         $status = $_POST['status'];
 
+        // Prepare and execute an SQL statement to update the assignment
         $sql = "UPDATE course_assignments SET student_id = ?, course_id = ?, status = ? WHERE assignment_id = ?";
         $stmt = $con->prepare($sql);
+
+        // The "iisi" in $stmt->bind_param("iisi", $student_id, $course_id, $status, $assignment_id); is a format string that specifies the data types of the parameters being bound to the SQL query. e.g. integer, integer, string, integer.
         $stmt->bind_param("iisi", $student_id, $course_id, $status, $assignment_id);
         
+        // Display success or error messages based on execution result
         if ($stmt->execute()) {
             echo "<div class='success-message'>Student assigned to course successfully.</div>";
         } else {
@@ -28,13 +40,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
         
         $stmt->close();
+
+    // Handling course assignment deletion (Only Faculty can delete)
     } elseif (isset($_POST['delete'])) {
         $assignment_id = $_POST['assignment_id'];
         
+        // Prepare and execute an SQL statement to delete the assignment
         $sql = "DELETE FROM course_assignments WHERE assignment_id = ?";
         $stmt = $con->prepare($sql);
         $stmt->bind_param("i", $assignment_id);
         
+        // Display success or error messages based on execution result
         if ($stmt->execute()) {
             echo "<div class='alert alert-success'>Assignment deleted successfully.</div>";
         } else {
@@ -42,15 +58,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
         
         $stmt->close();
+
+    // Handling new course assignment creation
     } else {
         $student_id = $_POST['student_id'];
         $course_id = $_POST['course_id'];
         $status = $_POST['status'];
 
+        // Prepare and execute an SQL statement to insert a new assignment
         $sql = "INSERT INTO course_assignments (student_id, course_id, status) VALUES (?, ?, ?)";
         $stmt = $con->prepare($sql);
         $stmt->bind_param("iis", $student_id, $course_id, $status);
         
+        // Display success or error messages based on execution result
         if ($stmt->execute()) {
             echo "<div class='alert alert-success'>Student assigned to course successfully.</div>";
         } else {
@@ -61,17 +81,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 }
 
+// Retrieve student list from the database
 $sql_students = "SELECT student_id, name FROM students";
 $result_students = $con->query($sql_students);
 
+// Retrieve course list from the database
 $sql_courses = "SELECT course_id, course_name FROM courses";
 $result_courses = $con->query($sql_courses);
 
+// Retrieve assigned courses with student names from the database
 $sql_assignments = "SELECT course_assignments.assignment_id, students.student_id, students.name AS student_name, courses.course_id, courses.course_name, course_assignments.status FROM course_assignments 
                     JOIN students ON course_assignments.student_id = students.student_id 
                     JOIN courses ON course_assignments.course_id = courses.course_id";
 $result_assignments = $con->query($sql_assignments);
 
+// Close the database connection
 $con->close();
 ?>
 
@@ -163,6 +187,8 @@ $con->close();
 <body>
     <div class="container">
         <h2>Assign Student to Course</h2>
+
+        <!-- Form to assign a student to a course -->
         <form method="post">
             <label for="student_id">Select Student:</label>
             <select name="student_id" required>

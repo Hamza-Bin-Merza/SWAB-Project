@@ -1,7 +1,7 @@
 <?php
 session_start(); // Start session for CSRF token
 
-// Generate a CSRF token if not already set
+// Generate a CSRF token if not already set to prevent CSRF attacks
 if (!isset($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
@@ -12,7 +12,7 @@ include 'db_connection.php';
 // Check if we are editing an existing course
 $edit_course = null;
 if (isset($_GET['edit'])) {
-    $course_id = intval($_GET['edit']);
+    $course_id = intval($_GET['edit']); // Sanitize input to prevent SQL Injection
 
     // Fetch the course details from the database using prepared statements
     $stmt = $con->prepare("SELECT * FROM courses WHERE course_id = ?");
@@ -71,7 +71,7 @@ $course_description = filter_var($_POST['course_description'], FILTER_SANITIZE_F
     } else {
         // Check if we are updating an existing course or creating a new one
         if (isset($_POST['update'])) {
-            $course_id = intval($_POST['course_id']);
+            $course_id = intval($_POST['course_id']); // Sanitize input
 
             // Ensure the course code is unique (except for the current course)
             $stmt = $con->prepare("SELECT COUNT(*) FROM courses WHERE course_code = ? AND course_id != ?");
