@@ -99,8 +99,29 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit'])) {
         <label for="student_id">Student ID:</label>
         <input type="text" id="student_id" name="student_id" required><br>
 
+        <label for="course">Course:</label>
+        <input type="text" id="course" name="course" required><br>
+
+        <label for="module">Module:</label>
+        <input type="text" id="module" name="module" required><br>
+
+        <label for="grade">Grade:</label>
+        <select id="grade" name="grade" required>
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="C">C</option>
+            <option value="D">D</option>
+            <option value="F">F</option>
+        </select><br>
+
         <label for="score">Score:</label>
         <input type="text" id="score" name="score" required><br>
+
+        <label for="date_recorded">Date Recorded:</label>
+        <input type="date" id="date_recorded" name="date_recorded" required><br>
+
+        <label for="course_end_date">Course End Date:</label>
+        <input type="date" id="course_end_date" name="course_end_date" required><br>
 
         <input type="submit" name="submit" value="Submit Grade">
     </form>

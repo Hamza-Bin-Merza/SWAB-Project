@@ -183,8 +183,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         <button type="submit">Login</button>
 
-        <!-- Forgot Password Link -->
-        <a href="forgot_password.php">Forgot Password?</a>
     </form>
 </div>
 
